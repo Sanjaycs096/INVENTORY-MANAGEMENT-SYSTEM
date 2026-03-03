@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - InvenTrack</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            margin: 0;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+        }
+
+        .error-container {
+            text-align: center;
+            max-width: 520px;
+            padding: 3rem 2.5rem;
+            background: #fff;
+            border-radius: 1.25rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            animation: slideUp 0.5s cubic-bezier(.22,.68,0,1.2) both;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .error-icon {
+            width: 90px;
+            height: 90px;
+            margin: 0 auto 1.5rem;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: #ef4444;
+        }
+
+        .error-code {
+            font-size: 4rem;
+            font-weight: 800;
+            color: #4f46e5;
+            line-height: 1;
+            margin-bottom: 0.25rem;
+            letter-spacing: -2px;
+        }
+
+        .error-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.75rem;
+        }
+
+        .error-message {
+            color: #64748b;
+            font-size: 0.95rem;
+            margin-bottom: 1.75rem;
+            line-height: 1.6;
+        }
+
+        .error-detail-box {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 0.85rem 1.1rem;
+            margin-bottom: 1.75rem;
+            text-align: left;
+            font-size: 0.8rem;
+            color: #991b1b;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            display: none;
+        }
+        .error-detail-box.visible { display: block; }
+
+        .error-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.7rem 1.5rem;
+            background: #4f46e5;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-home:hover { background: #4338ca; transform: translateY(-1px); }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.7rem 1.5rem;
+            background: #f1f5f9;
+            color: #475569;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .btn-back:hover { background: #e2e8f0; }
+
+        .error-toggle {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            cursor: pointer;
+            margin-top: 1.25rem;
+            display: inline-block;
+        }
+        .error-toggle:hover { color: #64748b; }
+
+        .divider {
+            border: none;
+            border-top: 1px solid #e2e8f0;
+            margin: 1.5rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+
+        <div class="error-code" id="errorCode">500</div>
+        <div class="error-title" id="errorTitle">Something went wrong</div>
+        <p class="error-message" id="errorMessage">
+            An unexpected error occurred. Please try again or return to the dashboard.
+        </p>
+
+        <div class="error-detail-box" id="errorDetailBox"></div>
+
+        <div class="error-actions">
+            <a href="dashboard.html" class="btn-home">
+                <i class="fas fa-home"></i> Go to Dashboard
+            </a>
+            <button class="btn-back" onclick="history.length > 1 ? history.back() : window.location.href='dashboard.html'">
+                <i class="fas fa-arrow-left"></i> Go Back
+            </button>
+        </div>
+
+        <hr class="divider">
+        <span class="error-toggle" id="toggleDetail" onclick="toggleDetail()" style="display:none;">
+            <i class="fas fa-bug"></i> Show technical details
+        </span>
+    </div>
+
+    <script>
+        // Read error info stored by the redirect
+        const params = new URLSearchParams(window.location.search);
+        const code    = params.get('code');
+        const title   = params.get('title');
+        const message = params.get('message');
+        const detail  = params.get('detail');
+
+        if (code)    document.getElementById('errorCode').textContent    = code;
+        if (title)   document.getElementById('errorTitle').textContent   = title;
+        if (message) document.getElementById('errorMessage').textContent = message;
+
+        if (detail) {
+            document.getElementById('errorDetailBox').textContent = decodeURIComponent(detail);
+            document.getElementById('toggleDetail').style.display = 'inline-block';
+        }
+
+        // HTTP status code → friendly title map
+        const statusTitles = {
+            '400': 'Bad Request',
+            '401': 'Session Expired',
+            '403': 'Access Denied',
+            '404': 'Page Not Found',
+            '408': 'Request Timeout',
+            '429': 'Too Many Requests',
+            '500': 'Server Error',
+            '502': 'Bad Gateway',
+            '503': 'Service Unavailable',
+        };
+        const statusMessages = {
+            '401': 'Your session has expired or is invalid. Please log in again.',
+            '403': 'You do not have permission to access this resource.',
+            '404': 'The page or resource you requested could not be found.',
+            '500': 'An internal server error occurred. Please try again later.',
+            '503': 'The service is temporarily unavailable. Please try again shortly.',
+        };
+
+        if (code && statusTitles[code] && !title) {
+            document.getElementById('errorTitle').textContent = statusTitles[code];
+        }
+        if (code && statusMessages[code] && !message) {
+            document.getElementById('errorMessage').textContent = statusMessages[code];
+        }
+
+        function toggleDetail() {
+            const box = document.getElementById('errorDetailBox');
+            const btn = document.getElementById('toggleDetail');
+            box.classList.toggle('visible');
+            btn.innerHTML = box.classList.contains('visible')
+                ? '<i class="fas fa-bug"></i> Hide technical details'
+                : '<i class="fas fa-bug"></i> Show technical details';
+        }
+    </script>
+</body>
+</html>

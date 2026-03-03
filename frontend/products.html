@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products - InvenTrack</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-boxes-stacked"></i> InvenTrack</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-home"></i><span>Dashboard</span>
+                </a>
+                <a href="products.html" class="nav-item active">
+                    <i class="fas fa-box"></i><span>Products</span>
+                </a>
+                <a href="categories.html" class="nav-item">
+                    <i class="fas fa-tags"></i><span>Categories</span>
+                </a>
+                <a href="suppliers.html" class="nav-item">
+                    <i class="fas fa-truck"></i><span>Suppliers</span>
+                </a>
+                <a href="transactions.html" class="nav-item">
+                    <i class="fas fa-exchange-alt"></i><span>Transactions</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <div class="header-title">
+                    <h1>Products Management</h1>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-primary demo-restricted" onclick="openProductModal()">
+                        <i class="fas fa-plus"></i> Add Product
+                    </button>
+                </div>
+            </header>
+
+            <!-- Search and Filters -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="search-bar">
+                        <input type="text" id="searchInput" class="search-input" placeholder="Search products...">
+                        <button class="btn btn-primary" onclick="searchProducts()">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                        <button class="btn btn-secondary" onclick="loadProducts()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Table -->
+            <div class="table-container">
+                <table class="table" id="productsTable">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th>Supplier</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTableBody">
+                        <tr><td colspan="8" class="text-center">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Product Modal -->
+    <div id="productModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Add Product</h3>
+                <button class="close-btn" onclick="closeProductModal()">&times;</button>
+            </div>
+            <form id="productForm">
+                <input type="hidden" id="productId" name="id">
+                <div class="form-group">
+                    <label class="form-label">Product Code *</label>
+                    <input type="text" name="productCode" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Product Name *</label>
+                    <input type="text" name="name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-control" rows="3"></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Category</label>
+                        <select name="categoryId" id="categorySelect" class="form-select"></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Supplier</label>
+                        <select name="supplierId" id="supplierSelect" class="form-select"></select>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Price *</label>
+                        <input type="number" name="price" class="form-control" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Quantity *</label>
+                        <input type="number" name="quantity" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Min Stock</label>
+                        <input type="number" name="minStockLevel" class="form-control" value="10">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Unit</label>
+                    <input type="text" name="unit" class="form-control" value="PCS">
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stock In / Issue Transaction Modal -->
+    <div id="txnModal" class="modal">
+        <div class="modal-content" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="txnModalTitle">Stock Transaction</h3>
+                <button class="close-btn" onclick="closeTxnModal()">&times;</button>
+            </div>
+            <form id="txnForm">
+                <div class="form-group">
+                    <label class="form-label" id="txnQtyLabel">Quantity</label>
+                    <input type="number" id="txnQty" class="form-control" min="1" required placeholder="Enter quantity">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes (optional)</label>
+                    <input type="text" id="txnNotes" class="form-control" placeholder="e.g. Purchase order #123">
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeTxnModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        function logout() {
+            Storage.clearAuth();
+            window.location.href = 'login.html';
+        }
+
+        // ── Stock Transaction Modal ───────────────────────────────────────
+        let txnProductId = null;
+        let txnType = null; // 'IN' or 'OUT'
+
+        function openStockIn(productId, productName) {
+            txnProductId = productId;
+            txnType = 'IN';
+            document.getElementById('txnModalTitle').textContent = 'Stock In — ' + productName;
+            document.getElementById('txnQtyLabel').textContent = 'Quantity to Add';
+            document.getElementById('txnQty').value = '';
+            document.getElementById('txnNotes').value = '';
+            ModalUtils.show('txnModal');
+        }
+
+        function openIssue(productId, productName, currentQty) {
+            txnProductId = productId;
+            txnType = 'OUT';
+            document.getElementById('txnModalTitle').textContent = 'Issue Product — ' + productName;
+            document.getElementById('txnQtyLabel').textContent = 'Quantity to Issue (Available: ' + currentQty + ')';
+            document.getElementById('txnQty').value = '';
+            document.getElementById('txnNotes').value = '';
+            ModalUtils.show('txnModal');
+        }
+
+        function closeTxnModal() {
+            ModalUtils.hide('txnModal');
+            txnProductId = null;
+            txnType = null;
+        }
+
+        document.getElementById('txnForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const qty = parseInt(document.getElementById('txnQty').value);
+            const notes = document.getElementById('txnNotes').value;
+
+            if (!qty || qty < 1) {
+                showAlert('Quantity must be at least 1', 'error');
+                return;
+            }
+
+            const payload = { productId: txnProductId, quantity: qty, notes: notes };
+
+            try {
+                let response;
+                if (txnType === 'IN') {
+                    response = await TransactionsAPI.stockIn(payload);
+                } else {
+                    response = await TransactionsAPI.order(payload);
+                }
+
+                if (response.success) {
+                    showAlert(txnType === 'IN' ? 'Stock added successfully' : 'Product issued successfully', 'success');
+                    closeTxnModal();
+                    loadProducts(); // refresh table with new quantities
+                } else {
+                    showAlert(response.message || 'Transaction failed', 'error');
+                }
+            } catch (err) {
+                showAlert('Transaction error: ' + err.message, 'error');
+            }
+        });
+
+        let currentProductId = null;
+        let products = [];
+        let categories = [];
+        let suppliers = [];
+
+        async function loadProducts() {
+            try {
+                const response = await ProductsAPI.getAll();
+                if (response.success) {
+                    products = response.data;
+                    displayProducts(products);
+                }
+            } catch (error) {
+                UI.showError('Failed to load products');
+            }
+        }
+
+        function displayProducts(data) {
+            const tbody = document.getElementById('productsTableBody');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center">No products found</td></tr>';
+                return;
+            }
+
+            const demo = isDemo();
+
+            data.forEach(product => {
+                const isCritical = product.quantity < 10;
+                const isLowStock = isCritical || product.quantity <= product.minStockLevel;
+                const rowClass = isCritical ? 'row-critical-stock' : isLowStock ? 'row-low-stock' : '';
+                const row = document.createElement('tr');
+                if (rowClass) row.className = rowClass;
+
+                const qtyBadgeClass = isCritical ? 'danger' : isLowStock ? 'warning' : 'success';
+                const statusBadge = isCritical
+                    ? '<span class="badge badge-danger"><i class="fas fa-exclamation-triangle"></i> Critical</span>'
+                    : isLowStock
+                        ? '<span class="badge badge-warning">Low Stock</span>'
+                        : '<span class="badge badge-success">In Stock</span>';
+
+                const actionBtns = demo
+                    ? '<span style="color:#94a3b8;font-size:0.75rem;"><i class="fas fa-eye"></i> View only</span>'
+                    : `<div style="display:flex;gap:5px;align-items:center;flex-wrap:nowrap;">
+                         <button class="btn-icon-act btn-act-success" onclick="openStockIn(${product.id}, '${product.name}')" title="Stock In"><i class="fas fa-plus"></i></button>
+                         <button class="btn-icon-act btn-act-warning" onclick="openIssue(${product.id}, '${product.name}', ${product.quantity})" title="Issue"><i class="fas fa-minus"></i></button>
+                         <button class="btn-icon-act btn-act-primary" onclick="editProduct(${product.id})" title="Edit"><i class="fas fa-edit"></i></button>
+                         <button class="btn-icon-act btn-act-danger" onclick="deleteProduct(${product.id})" title="Delete"><i class="fas fa-trash"></i></button>
+                       </div>`;
+
+                row.innerHTML = `
+                    <td style="white-space:nowrap;"><strong>${product.productCode}</strong></td>
+                    <td>
+                        ${product.name}
+                        ${isCritical ? '<span class="badge badge-danger" style="margin-left:6px;font-size:0.7rem;vertical-align:middle;"><i class="fas fa-exclamation-circle"></i> Low</span>' : ''}
+                    </td>
+                    <td><span class="badge badge-primary">${product.category?.name || 'N/A'}</span></td>
+                    <td style="white-space:nowrap;">${UI.formatCurrency(product.price)}</td>
+                    <td><span class="badge badge-${qtyBadgeClass}">${product.quantity}</span></td>
+                    <td>${product.supplier?.name || 'N/A'}</td>
+                    <td style="white-space:nowrap;">${statusBadge}</td>
+                    <td style="white-space:nowrap;">${actionBtns}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function loadDropdowns() {
+            try {
+                const [catResponse, supResponse] = await Promise.all([
+                    CategoriesAPI.getAll(),
+                    SuppliersAPI.getAll()
+                ]);
+
+                if (catResponse.success) {
+                    categories = catResponse.data;
+                    const select = document.getElementById('categorySelect');
+                    select.innerHTML = '<option value="">Select Category</option>' +
+                        categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                }
+
+                if (supResponse.success) {
+                    suppliers = supResponse.data;
+                    const select = document.getElementById('supplierSelect');
+                    select.innerHTML = '<option value="">Select Supplier</option>' +
+                        suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load dropdowns', error);
+            }
+        }
+
+        function openProductModal(id = null) {
+            currentProductId = id;
+            document.getElementById('modalTitle').textContent = id ? 'Edit Product' : 'Add Product';
+            document.getElementById('productForm').reset();
+            
+            if (id) {
+                const product = products.find(p => p.id === id);
+                if (product) {
+                    Object.keys(product).forEach(key => {
+                        const input = document.querySelector(`[name="${key}"]`);
+                        if (input) input.value = product[key] || '';
+                    });
+                    if (product.category) {
+                        document.querySelector('[name="categoryId"]').value = product.category.id;
+                    }
+                    if (product.supplier) {
+                        document.querySelector('[name="supplierId"]').value = product.supplier.id;
+                    }
+                }
+            }
+            
+            ModalUtils.show('productModal');
+        }
+
+        function closeProductModal() {
+            ModalUtils.hide('productModal');
+            currentProductId = null;
+        }
+
+        function editProduct(id) {
+            openProductModal(id);
+        }
+
+        async function deleteProduct(id) {
+            if (!UI.confirmDelete('Are you sure you want to delete this product?')) return;
+
+            try {
+                const response = await ProductsAPI.delete(id);
+                if (response.success) {
+                    UI.showSuccess('Product deleted successfully');
+                    loadProducts();
+                }
+            } catch (error) {
+                UI.showError('Failed to delete product');
+            }
+        }
+
+        async function searchProducts() {
+            const query = document.getElementById('searchInput').value;
+            if (!query) {
+                loadProducts();
+                return;
+            }
+
+            try {
+                const response = await ProductsAPI.search(query);
+                if (response.success) {
+                    displayProducts(response.data);
+                }
+            } catch (error) {
+                UI.showError('Search failed');
+            }
+        }
+
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = FormUtils.getFormData('productForm');
+            const product = {
+                productCode: formData.productCode,
+                name: formData.name,
+                description: formData.description,
+                price: parseFloat(formData.price),
+                quantity: parseInt(formData.quantity),
+                minStockLevel: parseInt(formData.minStockLevel) || 10,
+                unit: formData.unit || 'PCS',
+                category: formData.categoryId ? { id: parseInt(formData.categoryId) } : null,
+                supplier: formData.supplierId ? { id: parseInt(formData.supplierId) } : null
+            };
+
+            try {
+                let response;
+                if (currentProductId) {
+                    response = await ProductsAPI.update(currentProductId, product);
+                } else {
+                    response = await ProductsAPI.create(product);
+                }
+
+                if (response.success) {
+                    UI.showSuccess(currentProductId ? 'Product updated' : 'Product created');
+                    closeProductModal();
+                    loadProducts();
+                }
+            } catch (error) {
+                UI.showError(error.message || 'Failed to save product');
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            AuthGuard();
+            loadProducts();
+            loadDropdowns();
+        });
+    </script>
+</body>
+</html>

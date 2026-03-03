@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Categories - InvenTrack</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-boxes-stacked"></i>
+            <span>InvenTrack</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="dashboard.html"><i class="fas fa-th-large"></i> Dashboard</a>
+            <a href="products.html"><i class="fas fa-box"></i> Products</a>
+            <a href="categories.html" class="active"><i class="fas fa-tags"></i> Categories</a>
+            <a href="suppliers.html"><i class="fas fa-truck"></i> Suppliers</a>
+            <a href="transactions.html"><i class="fas fa-exchange-alt"></i> Transactions</a>
+        </nav>
+        <div class="sidebar-footer">
+            <button class="btn-logout" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <header class="page-header">
+            <div>
+                <h1>Category Management</h1>
+                <p>Manage product categories</p>
+            </div>
+            <button class="btn btn-primary demo-restricted" onclick="openCategoryModal()">
+                <i class="fas fa-plus"></i> Add Category
+            </button>
+        </header>
+
+        <!-- Search Bar -->
+        <div class="card">
+            <div class="search-container">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search categories..." oninput="searchCategories()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Categories Table -->
+        <div class="card">
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Products Count</th>
+                            <th>Created Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="categoriesTableBody">
+                        <tr>
+                            <td colspan="6" class="text-center">
+                                <div class="loading">Loading categories...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Modal -->
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Category</h2>
+                <span class="close" onclick="closeCategoryModal()">&times;</span>
+            </div>
+            <form id="categoryForm" onsubmit="handleCategorySubmit(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="categoryId">
+                    
+                    <div class="form-group">
+                        <label for="categoryName">Category Name <span class="required">*</span></label>
+                        <input type="text" id="categoryName" class="form-control" required placeholder="e.g., Electronics, Furniture">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="categoryDescription">Description</label>
+                        <textarea id="categoryDescription" class="form-control" rows="3" placeholder="Brief description of this category"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeCategoryModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Category
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        let categories = [];
+        let allCategories = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            AuthGuard();
+            loadCategories();
+        });
+
+        // Load all categories
+        async function loadCategories() {
+            try {
+                const response = await CategoriesAPI.getAll();
+                if (response.success) {
+                    allCategories = response.data || [];
+                    categories = [...allCategories];
+                    displayCategories();
+                } else {
+                    showAlert('Failed to load categories', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading categories:', error);
+                showAlert('Error loading categories', 'error');
+            }
+        }
+
+        // Display categories in table
+        function displayCategories() {
+            const tbody = document.getElementById('categoriesTableBody');
+            
+            if (categories.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center">No categories found</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = categories.map(category => `
+                <tr>
+                    <td>${category.id || '-'}</td>
+                    <td><strong>${category.name || '-'}</strong></td>
+                    <td>${category.description || '-'}</td>
+                    <td>
+                        <span class="badge badge-info">
+                            ${category.productCount || 0} products
+                        </span>
+                    </td>
+                    <td>${category.createdAt ? new Date(category.createdAt).toLocaleDateString() : '-'}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-icon btn-edit" onclick="editCategory(${category.id})" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon btn-delete" onclick="deleteCategory(${category.id})" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Search categories
+        function searchCategories() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            if (!searchTerm) {
+                categories = [...allCategories];
+            } else {
+                categories = allCategories.filter(category => 
+                    category.name?.toLowerCase().includes(searchTerm) ||
+                    category.description?.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            displayCategories();
+        }
+
+        // Open modal for new category
+        function openCategoryModal() {
+            document.getElementById('modalTitle').textContent = 'Add Category';
+            document.getElementById('categoryForm').reset();
+            document.getElementById('categoryId').value = '';
+            document.getElementById('categoryModal').style.display = 'block';
+        }
+
+        // Edit category
+        async function editCategory(id) {
+            try {
+                const response = await CategoriesAPI.getById(id);
+                if (response.success && response.data) {
+                    const category = response.data;
+                    
+                    document.getElementById('modalTitle').textContent = 'Edit Category';
+                    document.getElementById('categoryId').value = category.id;
+                    document.getElementById('categoryName').value = category.name || '';
+                    document.getElementById('categoryDescription').value = category.description || '';
+                    
+                    document.getElementById('categoryModal').style.display = 'block';
+                } else {
+                    showAlert('Failed to load category details', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading category:', error);
+                showAlert('Error loading category details', 'error');
+            }
+        }
+
+        // Delete category
+        async function deleteCategory(id) {
+            const category = categories.find(c => c.id === id);
+            const productCount = category?.productCount || 0;
+            
+            if (productCount > 0) {
+                showAlert(`Cannot delete category with ${productCount} products. Please reassign or delete products first.`, 'warning');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to delete this category?')) {
+                return;
+            }
+
+            try {
+                const response = await CategoriesAPI.delete(id);
+                if (response.success) {
+                    showAlert('Category deleted successfully', 'success');
+                    loadCategories();
+                } else {
+                    showAlert(response.message || 'Failed to delete category', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting category:', error);
+                showAlert('Error deleting category', 'error');
+            }
+        }
+
+        // Handle form submit
+        async function handleCategorySubmit(event) {
+            event.preventDefault();
+
+            const categoryData = {
+                name: document.getElementById('categoryName').value.trim(),
+                description: document.getElementById('categoryDescription').value.trim()
+            };
+
+            const categoryId = document.getElementById('categoryId').value;
+
+            try {
+                let response;
+                if (categoryId) {
+                    // Update existing category
+                    response = await CategoriesAPI.update(categoryId, categoryData);
+                } else {
+                    // Create new category
+                    response = await CategoriesAPI.create(categoryData);
+                }
+
+                if (response.success) {
+                    showAlert(categoryId ? 'Category updated successfully' : 'Category created successfully', 'success');
+                    closeCategoryModal();
+                    loadCategories();
+                } else {
+                    showAlert(response.message || 'Failed to save category', 'error');
+                }
+            } catch (error) {
+                console.error('Error saving category:', error);
+                showAlert('Error saving category', 'error');
+            }
+        }
+
+        // Close modal
+        function closeCategoryModal() {
+            document.getElementById('categoryModal').style.display = 'none';
+            document.getElementById('categoryForm').reset();
+        }
+
+        // Logout
+        function logout() {
+            Storage.clearAuth();
+            window.location.href = 'login.html';
+        }
+
+        // Close modal on outside click
+        window.onclick = function(event) {
+            const modal = document.getElementById('categoryModal');
+            if (event.target === modal) {
+                closeCategoryModal();
+            }
+        };
+    </script>
+</body>
+</html>

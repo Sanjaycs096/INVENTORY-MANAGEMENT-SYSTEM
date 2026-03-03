@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transactions - InvenTrack</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-boxes-stacked"></i>
+            <span>InvenTrack</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="dashboard.html"><i class="fas fa-th-large"></i> Dashboard</a>
+            <a href="products.html"><i class="fas fa-box"></i> Products</a>
+            <a href="categories.html"><i class="fas fa-tags"></i> Categories</a>
+            <a href="suppliers.html"><i class="fas fa-truck"></i> Suppliers</a>
+            <a href="transactions.html" class="active"><i class="fas fa-exchange-alt"></i> Transactions</a>
+        </nav>
+        <div class="sidebar-footer">
+            <button class="btn-logout" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <header class="page-header">
+            <div>
+                <h1>Transaction History</h1>
+                <p>View all stock movements and transactions</p>
+            </div>
+            <div>
+                <button class="btn btn-primary demo-restricted" onclick="openNewTxnModal()">
+                    <i class="fas fa-plus"></i> New Transaction
+                </button>
+            </div>
+        </header>
+
+        <!-- Filters -->
+        <div class="card" style="margin-bottom: var(--space-lg);">
+            <div class="filter-container">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="typeFilter">Transaction Type</label>
+                        <select id="typeFilter" class="form-control" onchange="applyFilters()">
+                            <option value="">All Types</option>
+                            <option value="IN">Stock In</option>
+                            <option value="OUT">Stock Out</option>
+                            <option value="ADJUSTMENT">Adjustment</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dateFromFilter">From Date</label>
+                        <input type="date" id="dateFromFilter" class="form-control" onchange="applyFilters()">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dateToFilter">To Date</label>
+                        <input type="date" id="dateToFilter" class="form-control" onchange="applyFilters()">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="searchInput">Search Product</label>
+                        <input type="text" id="searchInput" class="form-control" placeholder="Product name..." oninput="applyFilters()">
+                    </div>
+
+                    <div class="form-group" style="align-self: flex-end;">
+                        <button class="btn btn-secondary" onclick="resetFilters()">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card stat-primary">
+                <div class="stat-icon">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                <div class="stat-details">
+                    <h3 id="totalInCount">0</h3>
+                    <p>Total Stock In</p>
+                </div>
+            </div>
+
+            <div class="stat-card stat-success">
+                <div class="stat-icon">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+                <div class="stat-details">
+                    <h3 id="totalOutCount">0</h3>
+                    <p>Total Stock Out</p>
+                </div>
+            </div>
+
+            <div class="stat-card stat-warning">
+                <div class="stat-icon">
+                    <i class="fas fa-adjust"></i>
+                </div>
+                <div class="stat-details">
+                    <h3 id="totalAdjustmentCount">0</h3>
+                    <p>Adjustments</p>
+                </div>
+            </div>
+
+            <div class="stat-card stat-info">
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-day"></i>
+                </div>
+                <div class="stat-details">
+                    <h3 id="todayTransactionsCount">0</h3>
+                    <p>Today's Transactions</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="card">
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Date & Time</th>
+                            <th>Type</th>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>User</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionsTableBody">
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                <div class="loading">Loading transactions...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination" id="pagination">
+                <button class="btn btn-secondary" onclick="previousPage()" id="prevBtn" disabled>
+                    <i class="fas fa-chevron-left"></i> Previous
+                </button>
+                <span id="pageInfo">Page 1 of 1</span>
+                <button class="btn btn-secondary" onclick="nextPage()" id="nextBtn" disabled>
+                    Next <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Transaction Modal -->
+    <div id="newTxnModal" class="modal">
+        <div class="modal-content" style="max-width: 460px;">
+            <div class="modal-header">
+                <h3 class="modal-title">New Transaction</h3>
+                <button class="close-btn" onclick="closeNewTxnModal()">&times;</button>
+            </div>
+            <form id="newTxnForm">
+                <div class="form-group">
+                    <label class="form-label">Transaction Type *</label>
+                    <select id="newTxnType" class="form-control" required onchange="updateNewTxnLabel()">
+                        <option value="">Select Type</option>
+                        <option value="IN">Stock In (Receive)</option>
+                        <option value="OUT">Issue / Stock Out</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Product *</label>
+                    <select id="newTxnProduct" class="form-control" required>
+                        <option value="">Loading products...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" id="newTxnQtyLabel">Quantity *</label>
+                    <input type="number" id="newTxnQty" class="form-control" min="1" required placeholder="Enter quantity">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes (optional)</label>
+                    <input type="text" id="newTxnNotes" class="form-control" placeholder="e.g. PO #123, reference...">
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeNewTxnModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        let allTransactions = [];
+        let filteredTransactions = [];
+        let currentPage = 1;
+        const itemsPerPage = 20;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            AuthGuard();
+            loadTransactions();
+            setDefaultDates();
+        });
+
+        // Set default date range (last 30 days)
+        function setDefaultDates() {
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today);
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+
+            document.getElementById('dateToFilter').value = today.toISOString().split('T')[0];
+            document.getElementById('dateFromFilter').value = thirtyDaysAgo.toISOString().split('T')[0];
+        }
+
+        // Load all transactions
+        async function loadTransactions() {
+            try {
+                const response = await TransactionsAPI.getAll();
+                if (response.success) {
+                    allTransactions = response.data || [];
+                    applyFilters();
+                    updateStatistics();
+                } else {
+                    showAlert('Failed to load transactions', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+                showAlert('Error loading transactions', 'error');
+            }
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const typeFilter = document.getElementById('typeFilter').value;
+            const dateFrom = document.getElementById('dateFromFilter').value;
+            const dateTo = document.getElementById('dateToFilter').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            filteredTransactions = allTransactions.filter(transaction => {
+                // Type filter
+                if (typeFilter && transaction.transactionType !== typeFilter) {
+                    return false;
+                }
+
+                // Date filter
+                if (dateFrom && new Date(transaction.transactionDate) < new Date(dateFrom)) {
+                    return false;
+                }
+                if (dateTo) {
+                    const toDate = new Date(dateTo);
+                    toDate.setHours(23, 59, 59, 999);
+                    if (new Date(transaction.transactionDate) > toDate) {
+                        return false;
+                    }
+                }
+
+                // Search filter
+                if (searchTerm && !transaction.productName?.toLowerCase().includes(searchTerm)) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            currentPage = 1;
+            displayTransactions();
+        }
+
+        // Reset filters
+        function resetFilters() {
+            document.getElementById('typeFilter').value = '';
+            document.getElementById('searchInput').value = '';
+            setDefaultDates();
+            applyFilters();
+        }
+
+        // Display transactions in table
+        function displayTransactions() {
+            const tbody = document.getElementById('transactionsTableBody');
+            
+            if (filteredTransactions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center">No transactions found</td>
+                    </tr>
+                `;
+                updatePagination();
+                return;
+            }
+
+            // Calculate pagination
+            const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageTransactions = filteredTransactions.slice(startIndex, endIndex);
+
+            tbody.innerHTML = pageTransactions.map(transaction => {
+                const typeClass = transaction.transactionType === 'IN' ? 'badge-success' : 
+                                 transaction.transactionType === 'OUT' ? 'badge-danger' : 
+                                 'badge-warning';
+                
+                return `
+                    <tr>
+                        <td>${transaction.id || '-'}</td>
+                        <td>${formatDateTime(transaction.transactionDate)}</td>
+                        <td>
+                            <span class="badge ${typeClass}">
+                                ${getTransactionTypeLabel(transaction.transactionType)}
+                            </span>
+                        </td>
+                        <td><strong>${transaction.productName || '-'}</strong></td>
+                        <td>
+                            <strong class="${transaction.transactionType === 'IN' ? 'text-success' : 'text-danger'}">
+                                ${transaction.transactionType === 'IN' ? '+' : '-'}${Math.abs(transaction.quantity || 0)}
+                            </strong>
+                        </td>
+                        <td>${transaction.userName || '-'}</td>
+                        <td>${transaction.notes || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            updatePagination(totalPages);
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const today = new Date().toISOString().split('T')[0];
+            
+            const stockIn = allTransactions.filter(t => t.transactionType === 'IN').length;
+            const stockOut = allTransactions.filter(t => t.transactionType === 'OUT').length;
+            const adjustments = allTransactions.filter(t => t.transactionType === 'ADJUSTMENT').length;
+            const todayTransactions = allTransactions.filter(t => 
+                t.transactionDate?.startsWith(today)
+            ).length;
+
+            document.getElementById('totalInCount').textContent = stockIn;
+            document.getElementById('totalOutCount').textContent = stockOut;
+            document.getElementById('totalAdjustmentCount').textContent = adjustments;
+            document.getElementById('todayTransactionsCount').textContent = todayTransactions;
+        }
+
+        // Update pagination controls
+        function updatePagination(totalPages = 1) {
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+        }
+
+        // Pagination functions
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                displayTransactions();
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                displayTransactions();
+            }
+        }
+
+        // Helper functions
+        function getTransactionTypeLabel(type) {
+            const labels = {
+                'IN': 'Stock In',
+                'OUT': 'Stock Out',
+                'ADJUSTMENT': 'Adjustment'
+            };
+            return labels[type] || type;
+        }
+
+        function formatDateTime(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Logout
+        function logout() {
+            Storage.clearAuth();
+            window.location.href = 'login.html';
+        }
+
+        // ── New Transaction Modal ─────────────────────────────────────────
+        let allProductsList = [];
+
+        async function openNewTxnModal() {
+            // Load products into the dropdown if not already loaded
+            if (allProductsList.length === 0) {
+                const resp = await ProductsAPI.getAll();
+                if (resp.success) {
+                    allProductsList = resp.data || [];
+                }
+            }
+            const sel = document.getElementById('newTxnProduct');
+            sel.innerHTML = '<option value="">Select product...</option>' +
+                allProductsList.map(p =>
+                    `<option value="${p.id}" data-qty="${p.quantity}">${p.name} (Stock: ${p.quantity})</option>`
+                ).join('');
+
+            document.getElementById('newTxnType').value = '';
+            document.getElementById('newTxnQty').value = '';
+            document.getElementById('newTxnNotes').value = '';
+            document.getElementById('newTxnQtyLabel').textContent = 'Quantity *';
+            ModalUtils.show('newTxnModal');
+        }
+
+        function closeNewTxnModal() {
+            ModalUtils.hide('newTxnModal');
+        }
+
+        function updateNewTxnLabel() {
+            const type = document.getElementById('newTxnType').value;
+            const sel = document.getElementById('newTxnProduct');
+            const opt = sel.options[sel.selectedIndex];
+            const avail = opt && opt.dataset.qty ? ' (Available: ' + opt.dataset.qty + ')' : '';
+            if (type === 'OUT') {
+                document.getElementById('newTxnQtyLabel').textContent = 'Quantity to Issue *' + avail;
+            } else {
+                document.getElementById('newTxnQtyLabel').textContent = 'Quantity to Add *';
+            }
+        }
+
+        document.getElementById('newTxnForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const type = document.getElementById('newTxnType').value;
+            const productId = parseInt(document.getElementById('newTxnProduct').value);
+            const qty = parseInt(document.getElementById('newTxnQty').value);
+            const notes = document.getElementById('newTxnNotes').value;
+
+            if (!type || !productId || !qty || qty < 1) {
+                showAlert('Please fill all required fields', 'error');
+                return;
+            }
+
+            const payload = { productId, quantity: qty, notes };
+
+            try {
+                let response;
+                if (type === 'IN') {
+                    response = await TransactionsAPI.stockIn(payload);
+                } else {
+                    response = await TransactionsAPI.order(payload);
+                }
+
+                if (response.success) {
+                    showAlert(type === 'IN' ? 'Stock-in recorded successfully' : 'Issue processed successfully', 'success');
+                    closeNewTxnModal();
+                    // Reset product cache so quantities are fresh next time
+                    allProductsList = [];
+                    // Reload transactions list so new entry appears at top
+                    loadTransactions();
+                } else {
+                    showAlert(response.message || 'Transaction failed', 'error');
+                }
+            } catch (err) {
+                showAlert('Error: ' + err.message, 'error');
+            }
+        });
+    </script>
+</body>
+</html>

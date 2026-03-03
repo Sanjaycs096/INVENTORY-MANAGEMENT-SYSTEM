@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - InvenTrack</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- jsPDF + AutoTable for PDF report generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-boxes-stacked"></i> InvenTrack</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item active">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="products.html" class="nav-item">
+                    <i class="fas fa-box"></i>
+                    <span>Products</span>
+                </a>
+                <a href="categories.html" class="nav-item">
+                    <i class="fas fa-tags"></i>
+                    <span>Categories</span>
+                </a>
+                <a href="suppliers.html" class="nav-item">
+                    <i class="fas fa-truck"></i>
+                    <span>Suppliers</span>
+                </a>
+                <a href="transactions.html" class="nav-item">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span>Transactions</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-title">
+                    <h1>Dashboard</h1>
+                    <p style="color: var(--gray-600); margin-top: 0.25rem;">Welcome to your inventory overview</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-report" onclick="generateReport()" title="Generate full inventory report">
+                        <i class="fas fa-file-download"></i> Generate Report
+                    </button>
+                    <div class="user-info">
+                        <div class="user-avatar">A</div>
+                        <div>
+                            <strong class="user-name">Admin</strong>
+                            <p id="userRoleLabel" style="font-size: 0.75rem; color: var(--gray-600); margin: 0;">Administrator</p>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Low Stock Alert Banner -->
+            <div id="lowStockAlertBanner" class="low-stock-alert-banner" style="display:none;">
+                <i class="fas fa-exclamation-triangle alert-icon"></i>
+                <span id="lowStockAlertText">&#9888; Low stock alert</span>
+                <button class="alert-dismiss" onclick="document.getElementById('lowStockAlertBanner').style.display='none'" title="Dismiss">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon primary">
+                        <i class="fas fa-box"></i>
+                    </div>
+                    <div class="stat-info">
+                        <p class="stat-label">Total Products</p>
+                        <h3 class="stat-value" id="totalProducts">0</h3>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <p class="stat-label">Low Stock Items</p>
+                        <h3 class="stat-value" id="lowStockProducts">0</h3>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon success">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-info">
+                        <p class="stat-label">Inventory Value</p>
+                        <h3 class="stat-value" id="inventoryValue">$0</h3>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon danger">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <p class="stat-label">Today's Transactions</p>
+                        <h3 class="stat-value" id="todayTransactions">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
+                <!-- Low Stock Products -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Low Stock Products</h3>
+                        <a href="products.html" class="btn btn-sm btn-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Stock</th>
+                                        <th>Min</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lowStockTable">
+                                    <tr>
+                                        <td colspan="4" class="text-center">Loading...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Transactions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Recent Transactions</h3>
+                        <a href="transactions.html" class="btn btn-sm btn-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Product</th>
+                                        <th>Qty</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentTransactionsTable">
+                                    <tr>
+                                        <td colspan="4" class="text-center">Loading...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Distribution -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3 class="card-title">Category Distribution</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Products</th>
+                                    <th>Total Value</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoryTable">
+                                <tr>
+                                    <td colspan="4" class="text-center">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        // Cached data for report generation
+        let _cachedStats = null;
+        let _cachedProducts = [];
+        let _cachedLowStock = [];
+        let _cachedCategories = [];
+        let _cachedTransactions = [];
+
+        function logout() {
+            Storage.clearAuth();
+            window.location.href = 'login.html';
+        }
+
+        // Load Dashboard Data — all independent calls fire in parallel
+        async function loadDashboard() {
+            try {
+                const [
+                    statsResponse,
+                    lowStockResponse,
+                    transactionsResponse,
+                    categoriesResponse,
+                    productsResponse
+                ] = await Promise.all([
+                    DashboardAPI.getStats(),
+                    ProductsAPI.getLowStock(),
+                    TransactionsAPI.getRecent(),
+                    CategoriesAPI.getAll(),
+                    ProductsAPI.getAll()
+                ]);
+
+                if (statsResponse.success) {
+                    const stats = statsResponse.data;
+                    _cachedStats = stats;
+                    document.getElementById('totalProducts').textContent = stats.totalProducts;
+                    document.getElementById('lowStockProducts').textContent = stats.lowStockProducts;
+                    document.getElementById('inventoryValue').textContent = UI.formatCurrency(stats.totalInventoryValue);
+                    document.getElementById('todayTransactions').textContent = stats.todayTransactions;
+                }
+
+                if (lowStockResponse.success) {
+                    _cachedLowStock = lowStockResponse.data;
+                    displayLowStockProducts(lowStockResponse.data);
+                }
+
+                if (transactionsResponse.success) {
+                    _cachedTransactions = transactionsResponse.data;
+                    displayRecentTransactions(transactionsResponse.data);
+                }
+
+                if (categoriesResponse.success && productsResponse.success) {
+                    _cachedCategories = categoriesResponse.data;
+                    _cachedProducts = productsResponse.data;
+                    displayCategoryDistribution(categoriesResponse.data, productsResponse.data);
+                    checkLowStockAlert(productsResponse.data);
+                }
+
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                UI.showError('Failed to load dashboard data');
+            }
+        }
+
+        function displayLowStockProducts(products) {
+            const tbody = document.getElementById('lowStockTable');
+            tbody.innerHTML = '';
+
+            if (products.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center">No low stock products</td></tr>';
+                return;
+            }
+
+            products.slice(0, 5).forEach(product => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <strong>${product.name}</strong><br>
+                        <small style="color: var(--gray-500);">${product.productCode}</small>
+                    </td>
+                    <td><span class="badge badge-warning">${product.quantity}</span></td>
+                    <td>${product.minStockLevel}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="window.location.href='products.html'">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function displayRecentTransactions(transactions) {
+            const tbody = document.getElementById('recentTransactionsTable');
+            tbody.innerHTML = '';
+
+            if (transactions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center">No recent transactions</td></tr>';
+                return;
+            }
+
+            transactions.slice(0, 5).forEach(txn => {
+                const row = document.createElement('tr');
+                // transactionType from DTO is 'IN', 'OUT', 'ADJUSTMENT', 'RETURN'
+                const typeClass = {
+                    'IN':  'success',
+                    'OUT': 'danger',
+                    'ADJUSTMENT': 'warning',
+                    'RETURN': 'info'
+                }[txn.transactionType] || 'primary';
+
+                const typeLabel = {
+                    'IN':  'Stock In',
+                    'OUT': 'Stock Out',
+                    'ADJUSTMENT': 'Adjust',
+                    'RETURN': 'Return'
+                }[txn.transactionType] || txn.transactionType;
+
+                row.innerHTML = `
+                    <td><span class="badge badge-${typeClass}">${typeLabel}</span></td>
+                    <td>${txn.productName || 'N/A'}</td>
+                    <td>${txn.quantity}</td>
+                    <td><small>${UI.formatDate(txn.transactionDate)}</small></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function displayCategoryDistribution(categories, products) {
+            const tbody = document.getElementById('categoryTable');
+            tbody.innerHTML = '';
+
+            if (categories.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center">No categories available</td></tr>';
+                return;
+            }
+
+            categories.forEach(category => {
+                const categoryProducts = products.filter(p => p.category && p.category.id === category.id);
+                const totalValue = categoryProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0);
+                const productCount = categoryProducts.length;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${category.name}</strong></td>
+                    <td>${productCount}</td>
+                    <td>${UI.formatCurrency(totalValue)}</td>
+                    <td>
+                        ${productCount > 0 
+                            ? '<span class="badge badge-success">Active</span>' 
+                            : '<span class="badge badge-secondary">Empty</span>'}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Low-stock alert banner: triggers for products with qty < 10
+        function checkLowStockAlert(products) {
+            const critical = products.filter(p => p.quantity < 10);
+            const banner = document.getElementById('lowStockAlertBanner');
+            if (critical.length > 0) {
+                const names = critical.slice(0, 3).map(p => p.name).join(', ');
+                const extra = critical.length > 3 ? ` +${critical.length - 3} more` : '';
+                document.getElementById('lowStockAlertText').textContent =
+                    `\u26A0 ${critical.length} product(s) critically low (under 10 units): ${names}${extra}`;
+                banner.style.display = 'flex';
+            } else {
+                banner.style.display = 'none';
+            }
+        }
+
+        // Generate full PDF inventory report using jsPDF
+        function generateReport() {
+            const { jsPDF } = window.jspdf;
+            if (!jsPDF) { alert('PDF library not loaded. Check internet connection.'); return; }
+
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+            const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+            const primaryColor = [79, 70, 229];
+            const lightGray = [248, 250, 252];
+            const pageH = 297;
+            const footerMargin = 22;
+
+            // Returns next section heading Y — adds a new page if too close to bottom
+            function sectionY(gap) {
+                const y = doc.lastAutoTable.finalY + gap;
+                if (y > pageH - footerMargin - 25) {
+                    doc.addPage();
+                    return 15;
+                }
+                return y;
+            }
+
+            // ── Page header ───────────────────────────────────────
+            doc.setFillColor(...primaryColor);
+            doc.rect(0, 0, 210, 30, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('InvenTrack', 14, 13);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Inventory Report  |  Generated: ${dateStr}  ${timeStr}`, 14, 22);
+            doc.setTextColor(30, 41, 59);
+
+            // ── Summary stats ─────────────────────────────────────
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Summary Statistics', 14, 40);
+
+            // Strip ₹ symbol since Helvetica doesn't support it — use Rs. prefix instead
+            const rawValue = document.getElementById('inventoryValue').textContent.replace(/[^\d,\.]/g, '');
+            const statsBody = _cachedStats ? [
+                ['Total Products',        String(_cachedStats.totalProducts    ?? document.getElementById('totalProducts').textContent)],
+                ['Low Stock Products',    String(_cachedStats.lowStockProducts  ?? document.getElementById('lowStockProducts').textContent)],
+                ['Total Inventory Value', 'Rs. ' + rawValue],
+                ["Today's Transactions",  String(_cachedStats.todayTransactions ?? document.getElementById('todayTransactions').textContent)]
+            ] : [['No data', '']];
+
+            doc.autoTable({
+                head: [['Metric', 'Value']],
+                body: statsBody,
+                startY: 44,
+                margin: { left: 14, right: 14 },
+                styles: { fontSize: 9, cellPadding: 4 },
+                headStyles: { fillColor: primaryColor, textColor: 255, fontStyle: 'bold' },
+                alternateRowStyles: { fillColor: lightGray },
+                columnStyles: { 1: { fontStyle: 'bold', halign: 'right' } }
+            });
+
+            // ── Products table ────────────────────────────────────
+            // Total usable width = 210 - 14 - 14 = 182mm
+            // Cols: 22 + 42 + 26 + 10 + 28 + 30 + 24 = 182mm
+            const prodHeadY = sectionY(12);
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`All Products  (${_cachedProducts.length})`, 14, prodHeadY);
+
+            const productBody = _cachedProducts.map(p => [
+                p.productCode || '',
+                p.name,
+                p.category ? p.category.name : 'N/A',
+                String(p.quantity),
+                'Rs. ' + Number(p.price).toLocaleString('en-IN'),
+                'Rs. ' + Number(p.price * p.quantity).toLocaleString('en-IN'),
+                p.quantity < 10 ? 'CRITICAL' : p.quantity <= (p.minStockLevel || 10) ? 'Low' : 'OK'
+            ]);
+
+            doc.autoTable({
+                head: [['Code', 'Name', 'Category', 'Qty', 'Price', 'Total Value', 'Status']],
+                body: productBody,
+                startY: prodHeadY + 4,
+                margin: { left: 14, right: 14 },
+                styles: { fontSize: 8, cellPadding: 3, overflow: 'ellipsize' },
+                headStyles: { fillColor: primaryColor, textColor: 255, fontStyle: 'bold' },
+                alternateRowStyles: { fillColor: lightGray },
+                columnStyles: {
+                    0: { cellWidth: 22 },
+                    1: { cellWidth: 42 },
+                    2: { cellWidth: 26 },
+                    3: { cellWidth: 10, halign: 'right' },
+                    4: { cellWidth: 28, halign: 'right' },
+                    5: { cellWidth: 30, halign: 'right' },
+                    6: { cellWidth: 24, halign: 'center', fontStyle: 'bold' }
+                },
+                didParseCell: function (data) {
+                    if (data.section === 'body' && data.column.index === 6) {
+                        if (data.cell.raw === 'CRITICAL') data.cell.styles.textColor = [220, 38, 38];
+                        else if (data.cell.raw === 'Low')  data.cell.styles.textColor = [217, 119, 6];
+                        else                               data.cell.styles.textColor = [5, 150, 105];
+                    }
+                }
+            });
+
+            // ── Category summary ──────────────────────────────────
+            const catHeadY = sectionY(12);
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Category Summary', 14, catHeadY);
+
+            const catBody = _cachedCategories.map(cat => {
+                const prods = _cachedProducts.filter(p => p.category && p.category.id === cat.id);
+                const val   = prods.reduce((s, p) => s + p.price * p.quantity, 0);
+                return [cat.name, String(prods.length), 'Rs. ' + val.toLocaleString('en-IN')];
+            });
+
+            doc.autoTable({
+                head: [['Category', 'Products', 'Total Value']],
+                body: catBody.length ? catBody : [['No categories', '', '']],
+                startY: catHeadY + 4,
+                margin: { left: 14, right: 14 },
+                styles: { fontSize: 9, cellPadding: 3 },
+                headStyles: { fillColor: primaryColor, textColor: 255, fontStyle: 'bold' },
+                alternateRowStyles: { fillColor: lightGray },
+                columnStyles: {
+                    0: { cellWidth: 100 },
+                    1: { cellWidth: 40, halign: 'right' },
+                    2: { cellWidth: 42, halign: 'right' }
+                }
+            });
+
+            // ── Recent transactions ───────────────────────────────
+            const txnHeadY = sectionY(10);
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Recent Transactions  (last 20)', 14, txnHeadY);
+
+            const txnLabel = { IN: 'Stock In', OUT: 'Stock Out', ADJUSTMENT: 'Adjustment', RETURN: 'Return' };
+            const txnBody = _cachedTransactions.slice(0, 20).map(t => [
+                t.productName || 'N/A',
+                txnLabel[t.transactionType] || t.transactionType,
+                String(t.quantity),
+                t.transactionDate ? new Date(t.transactionDate).toLocaleDateString('en-IN') : '',
+                t.notes || ''
+            ]);
+
+            doc.autoTable({
+                head: [['Product', 'Type', 'Qty', 'Date', 'Notes']],
+                body: txnBody.length ? txnBody : [['No transactions', '', '', '', '']],
+                startY: txnHeadY + 4,
+                margin: { left: 14, right: 14 },
+                styles: { fontSize: 8, cellPadding: 3 },
+                headStyles: { fillColor: primaryColor, textColor: 255, fontStyle: 'bold' },
+                alternateRowStyles: { fillColor: lightGray },
+                columnStyles: {
+                    0: { cellWidth: 52 },
+                    1: { cellWidth: 26 },
+                    2: { cellWidth: 12, halign: 'right' },
+                    3: { cellWidth: 30 },
+                    4: { cellWidth: 62 }
+                }
+            });
+
+            // ── Footer on each page ───────────────────────────────
+            const totalPages = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(148, 163, 184);
+                doc.text(`Page ${i} of ${totalPages}  |  InvenTrack  |  ${dateStr}`, 14, 292);
+            }
+
+            doc.save(`inventory-report-${now.toISOString().slice(0, 10)}.pdf`);
+        }
+
+        // Ripple effect on all buttons
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.btn');
+            if (!btn) return;
+            const ripple = document.createElement('span');
+            ripple.className = 'btn-ripple';
+            const rect = btn.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            ripple.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX - rect.left - size / 2}px;top:${e.clientY - rect.top - size / 2}px`;
+            btn.appendChild(ripple);
+            ripple.addEventListener('animationend', () => ripple.remove());
+        });
+
+        // Load dashboard on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            AuthGuard();
+            // Update role label in header
+            const user = Storage.getUser();
+            if (user) {
+                const roleLabel = { ADMIN: 'Administrator', STAFF: 'Staff', MANAGER: 'Manager', DEMO: 'Guest \u2014 View Only' };
+                const el = document.getElementById('userRoleLabel');
+                if (el) el.textContent = roleLabel[user.role] || user.role || 'User';
+                if (user.role === 'DEMO') el.style.color = '#d97706';
+            }
+            loadDashboard();
+        });
+    </script>
+</body>
+</html>
