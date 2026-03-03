@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://inventrack-api-sgt3.onrender.com"
+      "destination": "https://inventrack-api-sgt3.onrender.com/api/:path*"
     }
   ],
   "headers": [
