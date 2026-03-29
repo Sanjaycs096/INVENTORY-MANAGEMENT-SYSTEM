@@ -653,41 +653,8 @@ taskkill /PID <process_id> /F
 - Transaction ↔ Product (Many-to-One)
 - Transaction ↔ User (Many-to-One)
 - Order ↔ OrderItems (One-to-Many)
-
 ---
 
-## 🔄 Migration from Old System
-
-Your existing **Swing GUI** application has been:
-- ✅ Converted to RESTful web application
-- ✅ Database persistence added
-- ✅ Multi-user support enabled
-- ✅ Authentication & authorization implemented
-- ✅ Modern responsive UI created
-
-**Key Improvements:**
-- Web-based (accessible anywhere)
-- Multi-user concurrent access
-- Better data persistence
-- Role-based security
-- Professional UI/UX
-- Scalable architecture
-
----
-
-## 📝 License & Support
-
-**License:** MIT  
-**Author:** Your Name  
-**Support:** [Your Email]
-
-For issues or questions:
-1. Check this README
-2. Review API documentation
-3. Check console logs
-4. Contact support
-
----
 
 ## 🎓 Learning Resources
 
